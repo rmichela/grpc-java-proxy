@@ -21,10 +21,12 @@ public class ProxyMethodServerCallHandler implements ServerCallHandler<InputStre
 
     private static final InputStreamMarshaller INPUT_STREAM_MARSHALLER = new InputStreamMarshaller();
 
+    private final String authority;
     private final String methodName;
     private final ProxyChannelManager proxyChannelManager;
 
-    public ProxyMethodServerCallHandler(String methodName, ProxyChannelManager proxyChannelManager) {
+    public ProxyMethodServerCallHandler(String authority, String methodName, ProxyChannelManager proxyChannelManager) {
+        this.authority = checkNotNull(authority, "authority");
         this.methodName = checkNotNull(methodName, "methodName");
         this.proxyChannelManager = checkNotNull(proxyChannelManager, "proxyChannelManager");
     }
@@ -37,6 +39,7 @@ public class ProxyMethodServerCallHandler implements ServerCallHandler<InputStre
             ServerCall<InputStream, InputStream> serverCall,
             Metadata serverHeaders) {
 
+        serverHeaders.put(HostHeaderProxyChannelManager.HOST_HEADER_KEY, authority);
         Channel channel = proxyChannelManager.getChannel(serverCall, serverHeaders);
 
         // Create the call to the real server. The method type is unknown, so we have to assume bi-directional

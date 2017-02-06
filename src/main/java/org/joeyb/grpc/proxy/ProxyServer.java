@@ -63,7 +63,7 @@ public class ProxyServer {
                                             inputStreamMarshaller,
                                             inputStreamMarshaller
                                     ),
-                                    new ProxyMethodServerCallHandler(methodName, proxyChannelManager));
+                                    new ProxyMethodServerCallHandler(authority, methodName, proxyChannelManager));
                         }
                     })
                     .build();

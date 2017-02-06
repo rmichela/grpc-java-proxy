@@ -21,13 +21,12 @@ import java.util.function.Consumer;
 /**
  * {@code HostHeaderProxyChannelManager} is an implementation of {@link ProxyChannelManager} that uses a request header
  * in order to route the incoming request to the correct server. The header name used is dictated by
- * {@link HostHeaderProxyChannelManager#HOST_HEADER}. If the header is not specified, then it routes the request to the
+ * {@link HostHeaderProxyChannelManager#HOST_HEADER_KEY}. If the header is not specified, then it routes the request to the
  * host that is configured as the "local" host (i.e. the service instance that is paired with this proxy instance).
  */
 public class HostHeaderProxyChannelManager implements AutoCloseable, ProxyChannelManager {
 
-    public static final String HOST_HEADER = "Host";
-    public static final Metadata.Key<String> HOST_HEADER_KEY = Metadata.Key.of(HOST_HEADER, ASCII_STRING_MARSHALLER);
+    public static final Metadata.Key<String> HOST_HEADER_KEY = Metadata.Key.of(":authority", ASCII_STRING_MARSHALLER);
 
     @VisibleForTesting
     final Map<String, ManagedChannel> channels;

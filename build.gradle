@@ -1,5 +1,6 @@
 buildscript {
     repositories {
+        mavenLocal()
         jcenter()
     }
     dependencies {
@@ -27,6 +28,7 @@ apply plugin: 'nebula.provided-base'
 apply plugin: 'nebula.source-jar'
 
 repositories {
+    mavenLocal()
     jcenter()
 }
 
