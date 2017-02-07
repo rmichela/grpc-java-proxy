@@ -20,38 +20,19 @@ import java.util.function.Consumer;
 
 /**
  * {@code HostHeaderProxyChannelManager} is an implementation of {@link ProxyChannelManager} that uses a request header
- * in order to route the incoming request to the correct server. The header name used is dictated by
- * {@link HostHeaderProxyChannelManager#HOST_HEADER_KEY}. If the header is not specified, then it routes the request to the
- * host that is configured as the "local" host (i.e. the service instance that is paired with this proxy instance).
+ * in order to route the incoming request to the correct server.
  */
 public class HostHeaderProxyChannelManager implements AutoCloseable, ProxyChannelManager {
-
-    public static final Metadata.Key<String> HOST_HEADER_KEY = Metadata.Key.of(":authority", ASCII_STRING_MARSHALLER);
 
     @VisibleForTesting
     final Map<String, ManagedChannel> channels;
 
     @VisibleForTesting
-    final Consumer<ManagedChannelBuilder<?>> localChannelBuilderConfigurer;
-
-    @VisibleForTesting
-    final String localHostName;
-
-    @VisibleForTesting
     final BiConsumer<String, ManagedChannelBuilder<?>> remoteChannelBuilderConfigurer;
 
-    public HostHeaderProxyChannelManager(
-            Consumer<ManagedChannelBuilder<?>> localChannelBuilderConfigurer,
-            String localHostName,
-            BiConsumer<String, ManagedChannelBuilder<?>> remoteChannelBuilderConfigurer) {
+    public HostHeaderProxyChannelManager(BiConsumer<String, ManagedChannelBuilder<?>> remoteChannelBuilderConfigurer) {
 
         this.channels = new ConcurrentHashMap<>();
-
-        this.localChannelBuilderConfigurer = checkNotNull(
-                localChannelBuilderConfigurer,
-                "localChannelBuilderConfigurer");
-
-        this.localHostName = checkNotNull(localHostName, "localHostName");
 
         this.remoteChannelBuilderConfigurer = checkNotNull(
                 remoteChannelBuilderConfigurer,
@@ -79,51 +60,24 @@ public class HostHeaderProxyChannelManager implements AutoCloseable, ProxyChanne
      * {@inheritDoc}
      */
     @Override
-    public Channel getChannel(ServerCall<InputStream, InputStream> call, Metadata headers) {
-        String host = headers.containsKey(HOST_HEADER_KEY)
-                      ? headers.get(HOST_HEADER_KEY)
-                      : localHostName;
-
-        return channels.computeIfAbsent(host, h -> createAndConfigureChannelBuilder(h).build());
+    public Channel getChannel(String authority) {
+        return channels.computeIfAbsent(authority, h -> createAndConfigureChannelBuilder(h).build());
     }
 
-    /**
-     * Returns a {@link ManagedChannelBuilder} for creating a {@link Channel} to the "local" service (i.e. the service
-     * instance that is paired with this proxy instance).
-     *
-     * <p>TODO: Don't default to plaintext. We should be configuring TLS.
-     *
-     * @param host the local host name
-     */
-    protected ManagedChannelBuilder<?> createLocalChannelBuilder(String host) {
-        return ManagedChannelBuilder.forTarget(host).usePlaintext(true);
-    }
 
     /**
      * Returns a {@link ManagedChannelBuilder} for creating a {@link Channel} to a "remote" service (i.e. NOT the
      * service instance that is paired with this proxy instance).
      *
-     * <p>TODO: Don't default to plaintext. We should be configuring TLS.
-     *
-     * @param host the remote host name
+     * @param authority the remote authority name
      */
-    protected ManagedChannelBuilder<?> createRemoteChannelBuilder(String host) {
-        return ManagedChannelBuilder.forTarget(host).usePlaintext(true);
+    protected ManagedChannelBuilder<?> createRemoteChannelBuilder(String authority) {
+        return ManagedChannelBuilder.forTarget(authority);
     }
 
-    private ManagedChannelBuilder<?> createAndConfigureChannelBuilder(String host) {
-        if (host.equals(localHostName)) {
-            ManagedChannelBuilder<?> builder = createLocalChannelBuilder(host);
-
-            localChannelBuilderConfigurer.accept(builder);
-
-            return builder;
-        } else {
-            ManagedChannelBuilder<?> builder = createRemoteChannelBuilder(host);
-
-            remoteChannelBuilderConfigurer.accept(host, builder);
-
-            return builder;
-        }
+    private ManagedChannelBuilder<?> createAndConfigureChannelBuilder(String authority) {
+        ManagedChannelBuilder<?> builder = createRemoteChannelBuilder(authority);
+        remoteChannelBuilderConfigurer.accept(authority, builder);
+        return builder;
     }
 }

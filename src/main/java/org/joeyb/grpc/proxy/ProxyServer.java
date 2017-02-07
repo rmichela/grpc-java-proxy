@@ -7,6 +7,9 @@ import io.grpc.ServerMethodDefinition;
 import io.grpc.netty.NettyServerBuilder;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -22,8 +25,8 @@ public class ProxyServer {
      * @param args command-line args
      */
     public static void main(String[] args) throws IOException {
-        if (args.length != 2) {
-            System.err.println("ERROR: You must give the proxy port and the host name for the local server.");
+        if (args.length == 0) {
+            System.err.println("ERROR: You must give the proxy port and optionally one or more routing instructions");
             System.exit(1);
             return;
         }
@@ -38,35 +41,35 @@ public class ProxyServer {
             return;
         }
 
-        final String localHost = args[1].trim();
+//        Map<String, String> routingTable = Arrays.stream(args)
+//                                                 .skip(1)
+//                                                 .map(s -> s.split("="))
+//                                                 .collect(Collectors.toMap(a -> a[0], a -> a[1]));
 
         System.out.println("PORT = " + port);
-        System.out.println("LOCAL HOST = " + localHost);
 
         try (HostHeaderProxyChannelManager proxyChannelManager = new HostHeaderProxyChannelManager(
-                c -> { },
-                localHost,
-                (h, c) -> { })) {
+                (h, c) -> {
+                    System.out.println("Allocating channel for " + h);
+                    // TODO: Don't use plaintext
+                    c.usePlaintext(true);
+                })) {
 
             InputStreamMarshaller inputStreamMarshaller = new InputStreamMarshaller();
 
+            HandlerRegistry registry = new CachingHandlerRegistry((methodName, authority) ->
+                    ServerMethodDefinition.create(
+                            MethodDescriptor.create(
+                                    MethodDescriptor.MethodType.UNKNOWN,
+                                    methodName,
+                                    inputStreamMarshaller,
+                                    inputStreamMarshaller
+                            ),
+                            new ProxyMethodServerCallHandler(authority, methodName, proxyChannelManager)));
+
             Server server = NettyServerBuilder.forPort(port)
-                    .fallbackHandlerRegistry(new HandlerRegistry() {
-                        @Override
-                        public ServerMethodDefinition<?, ?> lookupMethod(
-                                String methodName,
-                                @Nullable String authority) {
-                            return ServerMethodDefinition.create(
-                                    MethodDescriptor.create(
-                                            MethodDescriptor.MethodType.UNKNOWN,
-                                            methodName,
-                                            inputStreamMarshaller,
-                                            inputStreamMarshaller
-                                    ),
-                                    new ProxyMethodServerCallHandler(authority, methodName, proxyChannelManager));
-                        }
-                    })
-                    .build();
+                .fallbackHandlerRegistry(registry)
+                .build();
 
             server.start();
 

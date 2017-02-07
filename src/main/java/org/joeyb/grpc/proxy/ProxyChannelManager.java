@@ -18,8 +18,7 @@ public interface ProxyChannelManager {
     /**
      * Returns the {@link Channel} that should be used when proxying the given server call.
      *
-     * @param call The incoming server call that should be proxied.
-     * @param headers The headers for the incoming server call that should be proxied.
+     * @param authority the authority to get a channel for.
      */
-    Channel getChannel(ServerCall<InputStream, InputStream> call, Metadata headers);
+    Channel getChannel(String authority);
 }

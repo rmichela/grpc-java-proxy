@@ -39,8 +39,7 @@ public class ProxyMethodServerCallHandler implements ServerCallHandler<InputStre
             ServerCall<InputStream, InputStream> serverCall,
             Metadata serverHeaders) {
 
-        serverHeaders.put(HostHeaderProxyChannelManager.HOST_HEADER_KEY, authority);
-        Channel channel = proxyChannelManager.getChannel(serverCall, serverHeaders);
+        Channel channel = proxyChannelManager.getChannel(authority);
 
         // Create the call to the real server. The method type is unknown, so we have to assume bi-directional
         // streaming.
