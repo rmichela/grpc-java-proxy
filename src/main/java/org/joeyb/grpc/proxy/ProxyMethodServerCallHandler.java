@@ -19,16 +19,14 @@ import java.io.InputStream;
  */
 public class ProxyMethodServerCallHandler implements ServerCallHandler<InputStream, InputStream> {
 
-    private static final InputStreamMarshaller INPUT_STREAM_MARSHALLER = new InputStreamMarshaller();
-
     private final String authority;
     private final String methodName;
-    private final ProxyChannelManager proxyChannelManager;
+    private final Channel channel;
 
-    public ProxyMethodServerCallHandler(String authority, String methodName, ProxyChannelManager proxyChannelManager) {
+    public ProxyMethodServerCallHandler(String authority, String methodName, Channel channel) {
         this.authority = checkNotNull(authority, "authority");
         this.methodName = checkNotNull(methodName, "methodName");
-        this.proxyChannelManager = checkNotNull(proxyChannelManager, "proxyChannelManager");
+        this.channel = checkNotNull(channel, "channel");
     }
 
     /**
@@ -39,16 +37,14 @@ public class ProxyMethodServerCallHandler implements ServerCallHandler<InputStre
             ServerCall<InputStream, InputStream> serverCall,
             Metadata serverHeaders) {
 
-        Channel channel = proxyChannelManager.getChannel(authority);
-
         // Create the call to the real server. The method type is unknown, so we have to assume bi-directional
         // streaming.
         ClientCall<InputStream, InputStream> clientCall = channel.newCall(
                 MethodDescriptor.create(
                         MethodDescriptor.MethodType.UNKNOWN,
                         methodName,
-                        INPUT_STREAM_MARSHALLER,
-                        INPUT_STREAM_MARSHALLER),
+                        InputStreamMarshaller.instance,
+                        InputStreamMarshaller.instance),
                 CallOptions.DEFAULT);
 
         final ClientCall.Listener<InputStream> clientListener;

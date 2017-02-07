@@ -10,6 +10,8 @@ import java.io.InputStream;
  */
 public class InputStreamMarshaller implements MethodDescriptor.Marshaller<InputStream> {
 
+    public static final InputStreamMarshaller instance = new InputStreamMarshaller();
+
     /**
      * Returns the given {@link InputStream} without making any changes.
      *

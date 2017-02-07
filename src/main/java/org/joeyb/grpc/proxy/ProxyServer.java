@@ -7,11 +7,6 @@ import io.grpc.ServerMethodDefinition;
 import io.grpc.netty.NettyServerBuilder;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
 
 /**
  * TODO: This will probably end up being a Scone app.
@@ -48,36 +43,33 @@ public class ProxyServer {
 
         System.out.println("PORT = " + port);
 
-        try (HostHeaderProxyChannelManager proxyChannelManager = new HostHeaderProxyChannelManager(
+        PerAuthorityCachingProxyChannelManager proxyChannelManager = new PerAuthorityCachingProxyChannelManager(
                 (h, c) -> {
                     System.out.println("Allocating channel for " + h);
                     // TODO: Don't use plaintext
                     c.usePlaintext(true);
-                })) {
+                });
 
-            InputStreamMarshaller inputStreamMarshaller = new InputStreamMarshaller();
+        HandlerRegistry transparentProxyRegistry = new CachingHandlerRegistry((methodName, authority) ->
+                ServerMethodDefinition.create(
+                        MethodDescriptor.create(
+                                MethodDescriptor.MethodType.UNKNOWN,
+                                methodName,
+                                InputStreamMarshaller.instance,
+                                InputStreamMarshaller.instance
+                        ),
+                        new ProxyMethodServerCallHandler(authority, methodName, proxyChannelManager.getChannel(authority))));
 
-            HandlerRegistry registry = new CachingHandlerRegistry((methodName, authority) ->
-                    ServerMethodDefinition.create(
-                            MethodDescriptor.create(
-                                    MethodDescriptor.MethodType.UNKNOWN,
-                                    methodName,
-                                    inputStreamMarshaller,
-                                    inputStreamMarshaller
-                            ),
-                            new ProxyMethodServerCallHandler(authority, methodName, proxyChannelManager)));
+        Server server = NettyServerBuilder.forPort(port)
+            .fallbackHandlerRegistry(transparentProxyRegistry)
+            .build();
 
-            Server server = NettyServerBuilder.forPort(port)
-                .fallbackHandlerRegistry(registry)
-                .build();
+        server.start();
 
-            server.start();
+        System.out.println("Press <enter> to terminate...");
+        System.in.read();
+        proxyChannelManager.close();
+        server.shutdown();
 
-            try {
-                server.awaitTermination();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
     }
 }

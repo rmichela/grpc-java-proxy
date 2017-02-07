@@ -27,6 +27,10 @@ public class CachingHandlerRegistry extends HandlerRegistry {
         this.notFoundSupplier = notFoundSupplier;
     }
 
+    public void add(String methodName, String authority, ServerMethodDefinition<?,?> methodDefinition) {
+        services.putIfAbsent(new Key(methodName, authority), methodDefinition);
+    }
+
     @Nullable
     @Override
     public ServerMethodDefinition<?, ?> lookupMethod(String methodName, @Nullable String authority) {

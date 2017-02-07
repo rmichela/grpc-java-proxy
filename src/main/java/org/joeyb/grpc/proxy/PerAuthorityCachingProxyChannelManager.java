@@ -19,10 +19,10 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
- * {@code HostHeaderProxyChannelManager} is an implementation of {@link ProxyChannelManager} that uses a request header
- * in order to route the incoming request to the correct server.
+ * {@code PerAuthorityCachingProxyChannelManager} is an implementation of {@link ProxyChannelManager} that uses an authority header
+ * to route the incoming request to the correct server.
  */
-public class HostHeaderProxyChannelManager implements AutoCloseable, ProxyChannelManager {
+public class PerAuthorityCachingProxyChannelManager implements AutoCloseable, ProxyChannelManager {
 
     @VisibleForTesting
     final Map<String, ManagedChannel> channels;
@@ -30,7 +30,7 @@ public class HostHeaderProxyChannelManager implements AutoCloseable, ProxyChanne
     @VisibleForTesting
     final BiConsumer<String, ManagedChannelBuilder<?>> remoteChannelBuilderConfigurer;
 
-    public HostHeaderProxyChannelManager(BiConsumer<String, ManagedChannelBuilder<?>> remoteChannelBuilderConfigurer) {
+    public PerAuthorityCachingProxyChannelManager(BiConsumer<String, ManagedChannelBuilder<?>> remoteChannelBuilderConfigurer) {
 
         this.channels = new ConcurrentHashMap<>();
 
@@ -47,7 +47,7 @@ public class HostHeaderProxyChannelManager implements AutoCloseable, ProxyChanne
         channels.values().forEach(ManagedChannel::shutdown);
         channels.values().forEach(c -> {
             try {
-                c.awaitTermination(1, TimeUnit.MINUTES);
+                c.awaitTermination(5, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             } finally {
@@ -63,7 +63,6 @@ public class HostHeaderProxyChannelManager implements AutoCloseable, ProxyChanne
     public Channel getChannel(String authority) {
         return channels.computeIfAbsent(authority, h -> createAndConfigureChannelBuilder(h).build());
     }
-
 
     /**
      * Returns a {@link ManagedChannelBuilder} for creating a {@link Channel} to a "remote" service (i.e. NOT the
