@@ -19,8 +19,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
- * {@code PerAuthorityCachingProxyChannelManager} is an implementation of {@link ProxyChannelManager} that uses an authority header
- * to route the incoming request to the correct server.
+ * {@code PerAuthorityCachingProxyChannelManager} is an implementation of {@link ProxyChannelManager}
+ * that uses an authority header to route the incoming request to the correct server.
  */
 public class PerAuthorityCachingProxyChannelManager implements AutoCloseable, ProxyChannelManager {
 
@@ -30,7 +30,8 @@ public class PerAuthorityCachingProxyChannelManager implements AutoCloseable, Pr
     @VisibleForTesting
     final BiConsumer<String, ManagedChannelBuilder<?>> remoteChannelBuilderConfigurer;
 
-    public PerAuthorityCachingProxyChannelManager(BiConsumer<String, ManagedChannelBuilder<?>> remoteChannelBuilderConfigurer) {
+    public PerAuthorityCachingProxyChannelManager(
+            BiConsumer<String, ManagedChannelBuilder<?>> remoteChannelBuilderConfigurer) {
 
         this.channels = new ConcurrentHashMap<>();
 

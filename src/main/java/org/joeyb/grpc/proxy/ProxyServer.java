@@ -36,10 +36,10 @@ public class ProxyServer {
             return;
         }
 
-//        Map<String, String> routingTable = Arrays.stream(args)
-//                                                 .skip(1)
-//                                                 .map(s -> s.split("="))
-//                                                 .collect(Collectors.toMap(a -> a[0], a -> a[1]));
+        //        Map<String, String> routingTable = Arrays.stream(args)
+        //                                                 .skip(1)
+        //                                                 .map(s -> s.split("="))
+        //                                                 .collect(Collectors.toMap(a -> a[0], a -> a[1]));
 
         System.out.println("PORT = " + port);
 
@@ -58,11 +58,12 @@ public class ProxyServer {
                                 InputStreamMarshaller.instance,
                                 InputStreamMarshaller.instance
                         ),
-                        new ProxyMethodServerCallHandler(authority, methodName, proxyChannelManager.getChannel(authority))));
+                        new ProxyMethodServerCallHandler(authority, methodName,
+                                proxyChannelManager.getChannel(authority))));
 
         Server server = NettyServerBuilder.forPort(port)
-            .fallbackHandlerRegistry(transparentProxyRegistry)
-            .build();
+                .fallbackHandlerRegistry(transparentProxyRegistry)
+                .build();
 
         server.start();
 
