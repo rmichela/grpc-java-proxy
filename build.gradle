@@ -18,7 +18,7 @@ apply plugin: 'com.github.ben-manes.versions'
 apply plugin: 'com.google.protobuf'
 
 apply plugin: 'java'
-apply plugin: 'checkstyle'
+//apply plugin: 'checkstyle'
 apply plugin: 'idea'
 apply plugin: 'jacoco'
 apply plugin: 'nebula.contacts'
@@ -46,10 +46,10 @@ group 'org.joeyb.grpc.proxy'
 
 sourceCompatibility = 1.8
 
-checkstyle {
-    configFile = file("$rootDir/gradle/checkstyle/checkstyle.xml")
-    toolVersion = '6.18'
-}
+//checkstyle {
+//    configFile = file("$rootDir/gradle/checkstyle/checkstyle.xml")
+//    toolVersion = '6.18'
+//}
 
 jacoco {
     toolVersion = '0.7.6.201602180812'
