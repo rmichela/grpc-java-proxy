@@ -1,12 +1,14 @@
 package org.joeyb.grpc.proxy;
 
 import io.grpc.HandlerRegistry;
-import io.grpc.MethodDescriptor;
 import io.grpc.Server;
-import io.grpc.ServerMethodDefinition;
 import io.grpc.netty.NettyServerBuilder;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * TODO: This will probably end up being a Scone app.
@@ -36,12 +38,16 @@ public class ProxyServer {
             return;
         }
 
-        //        Map<String, String> routingTable = Arrays.stream(args)
-        //                                                 .skip(1)
-        //                                                 .map(s -> s.split("="))
-        //                                                 .collect(Collectors.toMap(a -> a[0], a -> a[1]));
-
         System.out.println("PORT = " + port);
+
+
+        Map<String, String> routingTable = Arrays.stream(args)
+                .skip(1)
+                .map(s -> s.split("="))
+                .collect(Collectors.toMap(a -> a[0], a -> a[1]));
+
+        routingTable.forEach((s, a) -> System.out.println(s + " -> " + a));
+
 
         PerAuthorityCachingProxyChannelManager proxyChannelManager = new PerAuthorityCachingProxyChannelManager(
                 (h, c) -> {
@@ -50,19 +56,25 @@ public class ProxyServer {
                     c.usePlaintext(true);
                 });
 
-        HandlerRegistry transparentProxyRegistry = new CachingHandlerRegistry((methodName, authority) ->
-                ServerMethodDefinition.create(
-                        MethodDescriptor.create(
-                                MethodDescriptor.MethodType.UNKNOWN,
-                                methodName,
-                                InputStreamMarshaller.instance,
-                                InputStreamMarshaller.instance
-                        ),
-                        new ProxyMethodServerCallHandler(authority, methodName,
-                                proxyChannelManager.getChannel(authority))));
+        List<HandlerRegistry> registries = routingTable
+                .keySet()
+                .stream()
+                .map(service -> new ReverseProxyHandlerRegistry(service, routingTable.get(service),
+                        proxyChannelManager, (methodName, authority) -> {
+                    System.out.println("Reverse proxy: " + methodName + " -> " + authority);
+                }))
+                .collect(Collectors.toList());
+
+        registries.add(new ForwardProxyHandlerRegistry(proxyChannelManager, (methodName, authority) -> {
+            System.out.println("Forward proxy: " + methodName + " -> " + authority);
+        }));
+
+        HandlerRegistry compoundRegistry = new CompoundHandlerRegistry(registries, (methodName, authority) -> {
+            System.out.println("Resolving: " + methodName + " -> " + authority);
+        });
 
         Server server = NettyServerBuilder.forPort(port)
-                .fallbackHandlerRegistry(transparentProxyRegistry)
+                .fallbackHandlerRegistry(compoundRegistry)
                 .build();
 
         server.start();
