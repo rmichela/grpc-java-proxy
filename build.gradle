@@ -107,3 +107,13 @@ idea {
         generatedSourceDirs += generatedProtosTestJavaDir
     }
 }
+
+jar {
+    manifest {
+        attributes "Main-Class": "org.joeyb.grpc.proxy.ProxyServer"
+    }
+
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
